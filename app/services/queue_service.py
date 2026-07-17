@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+import logging
 
 from app.models import QueueItem, QueueSnapshot
 from app.services.jd_client import JdClientError, LocalJdClient
+
+
+logger = logging.getLogger(__name__)
 
 
 class QueueService:
@@ -22,6 +26,7 @@ class QueueService:
         try:
             items = self.client.fetch_queue_items()
         except JdClientError as exc:
+            logger.error("Queue polling failed: %s", exc)
             return QueueSnapshot(errors=[str(exc)])
 
         active: list[QueueItem] = []
@@ -46,5 +51,11 @@ class QueueService:
             self._completed.values(),
             key=lambda item: item.finished_at or datetime.min,
             reverse=True,
+        )
+        logger.info(
+            "Queue snapshot prepared: active=%s waiting=%s completed=%s",
+            len(active),
+            len(waiting),
+            len(completed),
         )
         return QueueSnapshot(active=active, waiting=waiting, completed=completed)

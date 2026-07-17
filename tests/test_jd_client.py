@@ -38,11 +38,29 @@ def test_add_links_posts_to_local_linkgrabber_endpoint() -> None:
 
     client.add_links(["https://example.com/file1"], "/downloads/incoming", package_name="incoming")
 
-    assert session.calls[0]["method"] == "POST"
-    assert session.calls[0]["url"] == "http://127.0.0.1:3129/linkgrabberv2/addLinks"
-    payload = session.calls[0]["json"]
-    assert payload[0]["destinationFolder"] == "/downloads/incoming"
-    assert payload[0]["overwritePackagizerRules"] is True
+    assert session.calls[0]["method"] == "GET"
+    assert session.calls[0]["json"] is None
+    assert session.calls[0]["url"].startswith("http://127.0.0.1:3129/linkgrabberv2/addLinks?")
+    assert "destinationFolder" in session.calls[0]["url"]
+    assert "overwritePackagizerRules" in session.calls[0]["url"]
+    assert "assignJobID" in session.calls[0]["url"]
+
+
+def test_add_links_falls_back_to_legacy_linkcollector_endpoint() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(status_code=500, text="internal error"),
+            FakeResponse(json_data=True),
+        ]
+    )
+    client = LocalJdClient(make_config(), session=session)  # type: ignore[arg-type]
+
+    client.add_links(["https://example.com/file1"], "/downloads/incoming", package_name="incoming")
+
+    assert len(session.calls) == 2
+    assert session.calls[0]["url"].startswith("http://127.0.0.1:3129/linkgrabberv2/addLinks?")
+    assert session.calls[1]["url"].startswith("http://127.0.0.1:3129/linkcollector/addLinks?")
+    assert "%2Fdownloads%2Fincoming" in session.calls[1]["url"]
 
 
 def test_fetch_queue_items_maps_progress() -> None:
@@ -73,6 +91,8 @@ def test_fetch_queue_items_maps_progress() -> None:
     assert items[0].id == "123"
     assert items[0].progress_percent == 25.0
     assert items[0].target_path == "/downloads/incoming"
+    assert session.calls[0]["method"] == "GET"
+    assert session.calls[0]["url"].startswith("http://127.0.0.1:3129/downloadsV2/queryLinks?")
 
 
 def test_http_error_raises_jd_client_error() -> None:
@@ -83,5 +103,6 @@ def test_http_error_raises_jd_client_error() -> None:
         client.fetch_queue_items()
     except JdClientError as exc:
         assert "HTTP 500" in str(exc)
+        assert "boom" in str(exc)
     else:
         raise AssertionError("Expected JdClientError")

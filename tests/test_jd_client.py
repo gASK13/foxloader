@@ -67,19 +67,21 @@ def test_fetch_queue_items_maps_progress() -> None:
     session = FakeSession(
         [
             FakeResponse(
-                json_data=[
-                    {
-                        "uuid": 123,
-                        "name": "Example File",
-                        "status": "RUNNING",
-                        "bytesTotal": 200,
-                        "bytesLoaded": 50,
-                        "speed": 1024,
-                        "saveTo": "/downloads/incoming",
-                        "packageName": "incoming",
-                        "eta": 30,
-                    }
-                ]
+                json_data={
+                    "data": [
+                        {
+                            "uuid": 123,
+                            "name": "Example File",
+                            "status": "RUNNING",
+                            "bytesTotal": 200,
+                            "bytesLoaded": 50,
+                            "speed": 1024,
+                            "saveTo": "/downloads/incoming",
+                            "packageName": "incoming",
+                            "eta": 30,
+                        }
+                    ]
+                }
             )
         ]
     )

@@ -89,7 +89,7 @@ class LocalJdClient:
             "uuid": True,
         }
         result = self._request_with_raw_query("GET", "/downloadsV2/queryLinks", query)
-        return list(result or [])
+        return self._extract_records(result)
 
     def _map_queue_item(self, record: dict[str, Any]) -> QueueItem | None:
         item_id = record.get("uuid") or record.get("id")
@@ -162,3 +162,16 @@ class LocalJdClient:
         for arg in args:
             encoded_args.append(quote(jsonlib.dumps(arg, separators=(",", ":")), safe=""))
         return self._request(method, f"{path}?{'&'.join(encoded_args)}")
+
+    @staticmethod
+    def _extract_records(result: Any) -> list[dict[str, Any]]:
+        if result is None:
+            return []
+        if isinstance(result, dict):
+            data = result.get("data", [])
+            if isinstance(data, list):
+                return [record for record in data if isinstance(record, dict)]
+            return []
+        if isinstance(result, list):
+            return [record for record in result if isinstance(record, dict)]
+        return []

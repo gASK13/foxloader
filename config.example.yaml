@@ -1,0 +1,7 @@
+download_root: ./downloads
+default_target: incoming
+queue_refresh_seconds: 5
+app_host: 127.0.0.1
+app_port: 8080
+jd_base_url: http://127.0.0.1:3129
+jd_request_timeout_seconds: 15
